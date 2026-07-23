@@ -1,0 +1,19 @@
+[PASS] 5.0 ~= calculator_add(2.0, 3.0)
+[PASS] -5.0 ~= calculator_add(-2.0, -3.0)
+[PASS] 0.0 ~= calculator_add(7.5, -7.5)
+[PASS] 2.0 ~= calculator_subtract(5.0, 3.0)
+[PASS] -8.0 ~= calculator_subtract(-5.0, 3.0)
+[PASS] 0.0 ~= calculator_subtract(4.25, 4.25)
+[PASS] 12.0 ~= calculator_multiply(3.0, 4.0)
+[PASS] -12.0 ~= calculator_multiply(-3.0, 4.0)
+[PASS] 0.0 ~= calculator_multiply(100.0, 0.0)
+[PASS] status == CALCULATOR_OK
+[PASS] 5.0 ~= result
+[PASS] status == CALCULATOR_OK
+[PASS] -3.0 ~= result
+[PASS] status == CALCULATOR_DIVISION_BY_ZERO
+[PASS] 123.0 ~= result
+[PASS] status == CALCULATOR_NULL_RESULT
+
+Tests passed: 16/16
+ALL TESTS PASSED
