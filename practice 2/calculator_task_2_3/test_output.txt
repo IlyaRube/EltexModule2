@@ -1,0 +1,55 @@
+[PASS] status == CALCULATOR_OK
+[PASS] 5.0 ~= result
+[PASS] status == CALCULATOR_OK
+[PASS] -3.0 ~= result
+[PASS] status == CALCULATOR_OK
+[PASS] -12.0 ~= result
+[PASS] status == CALCULATOR_OK
+[PASS] 2.5 ~= result
+[PASS] status == CALCULATOR_DIVISION_BY_ZERO
+[PASS] 123.0 ~= result
+[PASS] status == CALCULATOR_NULL_RESULT
+[PASS] menu.commands == NULL
+[PASS] menu.count == 0U
+[PASS] menu.capacity == 0U
+[PASS] status == CALCULATOR_OK
+[PASS] status == CALCULATOR_OK
+[PASS] status == CALCULATOR_OK
+[PASS] status == CALCULATOR_OK
+[PASS] status == CALCULATOR_OK
+[PASS] menu.count == 5U
+[PASS] menu.capacity >= menu.count
+[PASS] command != NULL
+[PASS] command != NULL && command->id == 3
+[PASS] command != NULL && strcmp(command->name, "Multiply") == 0
+[PASS] command != NULL && command->operation == calculator_multiply
+[PASS] status == CALCULATOR_OK
+[PASS] 42.0 ~= result
+[PASS] command != NULL
+[PASS] command != NULL && strcmp(command->name, "Add") == 0
+[PASS] calculator_menu_get(&menu, 99U) == NULL
+[PASS] calculator_menu_find(&menu, 99) == NULL
+[PASS] status == CALCULATOR_DUPLICATE_COMMAND
+[PASS] menu.count == 5U
+[PASS] status == CALCULATOR_INVALID_ARGUMENT
+[PASS] status == CALCULATOR_INVALID_ARGUMENT
+[PASS] status == CALCULATOR_INVALID_ARGUMENT
+[PASS] status == CALCULATOR_COMMAND_NOT_FOUND
+[PASS] menu.commands == NULL
+[PASS] menu.count == 0U
+[PASS] menu.capacity == 0U
+[PASS] calculator_menu_add(&menu, 1, "Add", calculator_add) == CALCULATOR_OK
+[PASS] calculator_menu_add(&menu, 2, "Subtract", calculator_subtract) == CALCULATOR_OK
+[PASS] calculator_menu_add(&menu, 3, "Multiply", calculator_multiply) == CALCULATOR_OK
+[PASS] calculator_menu_add(&menu, 4, "Divide", calculator_divide) == CALCULATOR_OK
+[PASS] status == CALCULATOR_OK
+[PASS] 10.0 ~= result
+[PASS] status == CALCULATOR_OK
+[PASS] 6.0 ~= result
+[PASS] status == CALCULATOR_OK
+[PASS] 16.0 ~= result
+[PASS] status == CALCULATOR_OK
+[PASS] 4.0 ~= result
+
+Tests passed: 52/52
+ALL TESTS PASSED
