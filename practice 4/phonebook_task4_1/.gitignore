@@ -1,0 +1,6 @@
+*.exe
+*.o
+contacts.txt
+contacts.txt.tmp
+test_contacts_*.txt
+test_contacts_*.txt.tmp

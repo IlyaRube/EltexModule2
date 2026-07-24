@@ -1,0 +1,105 @@
+Запуск автотестов двухсвязной телефонной книги...
+
+[PASS] 0 == book.count
+[PASS] book.head == NULL
+[PASS] book.tail == NULL
+[PASS] contact_book_add(&book, &petrov) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &andreev) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &vasilev) == CONTACT_BOOK_OK
+[PASS] 3 == book.count
+[PASS] "Андреев" == "Андреев"
+[PASS] "Васильев" == "Васильев"
+[PASS] "Петров" == "Петров"
+[PASS] book.head->prev == NULL
+[PASS] book.tail->next == NULL
+[PASS] book.head->next->prev == book.head
+[PASS] book.tail->prev == book.head->next
+[PASS] links_are_consistent(&book)
+[PASS] list_is_sorted(&book)
+[PASS] "Алексей" == "Алексей"
+[PASS] "Андреевич" == "Андреевич"
+[PASS] "Борисович" == "Борисович"
+[PASS] "Пётр" == "Пётр"
+[PASS] list_is_sorted(&book)
+[PASS] contact_book_add(&book, &no_last_name) == CONTACT_BOOK_ERROR_REQUIRED_FIELD
+[PASS] contact_book_add(&book, &no_first_name) == CONTACT_BOOK_ERROR_REQUIRED_FIELD
+[PASS] 0 == book.count
+[PASS] links_are_consistent(&book)
+[PASS] contact_is_valid(&invalid_count) == 0
+[PASS] contact_is_valid(&empty_phone) == 0
+[PASS] contact_book_add(&book, &invalid_count) == CONTACT_BOOK_ERROR_INVALID_CONTACT
+[PASS] contact_book_add(&book, &empty_phone) == CONTACT_BOOK_ERROR_INVALID_CONTACT
+[PASS] 0 == book.count
+[PASS] "Андреев" == "Андреев"
+[PASS] "Борисов" == "Борисов"
+[PASS] "Васильев" == "Васильев"
+[PASS] "Громов" == "Громов"
+[PASS] contact_book_get(&book, 4) == NULL
+[PASS] contact_book_update(&book, 1, &edited) == CONTACT_BOOK_OK
+[PASS] 3 == book.count
+[PASS] "Андреев" == "Андреев"
+[PASS] "Сидоров" == "Сидоров"
+[PASS] "Яковлев" == "Яковлев"
+[PASS] "Инженер" == "Инженер"
+[PASS] links_are_consistent(&book)
+[PASS] list_is_sorted(&book)
+[PASS] contact_book_delete(&book, 0) == CONTACT_BOOK_OK
+[PASS] 3 == book.count
+[PASS] "Борисов" == "Борисов"
+[PASS] book.head->prev == NULL
+[PASS] links_are_consistent(&book)
+[PASS] contact_book_delete(&book, 1) == CONTACT_BOOK_OK
+[PASS] 2 == book.count
+[PASS] "Борисов" == "Борисов"
+[PASS] "Громов" == "Громов"
+[PASS] links_are_consistent(&book)
+[PASS] contact_book_delete(&book, 1) == CONTACT_BOOK_OK
+[PASS] 1 == book.count
+[PASS] book.head == book.tail
+[PASS] "Борисов" == "Борисов"
+[PASS] links_are_consistent(&book)
+[PASS] contact_book_delete(&book, 0) == CONTACT_BOOK_OK
+[PASS] 0 == book.count
+[PASS] book.head == NULL && book.tail == NULL
+[PASS] contact_book_update(&book, 0, &contact) == CONTACT_BOOK_ERROR_NOT_FOUND
+[PASS] contact_book_delete(&book, 0) == CONTACT_BOOK_ERROR_NOT_FOUND
+[PASS] contact_book_get(&book, 0) == NULL
+[PASS] contact_matches_query(&contact, "Смир") == 1
+[PASS] contact_matches_query(&contact, "Алекс") == 1
+[PASS] contact_matches_query(&contact, "Олег") == 1
+[PASS] contact_matches_query(&contact, "Петров") == 0
+[PASS] contact_matches_query(&contact, "") == 0
+[PASS] "Васильев" == "Васильев"
+[PASS] "Борисов" == "Борисов"
+[PASS] "Андреев" == "Андреев"
+[PASS] node->prev == NULL
+[PASS] links_are_consistent(&book)
+[PASS] 0 == book.count
+[PASS] book.head == NULL
+[PASS] book.tail == NULL
+[PASS] storage_save(&source, TEST_STORAGE_FILE) == STORAGE_OK
+[PASS] storage_load(&loaded, TEST_STORAGE_FILE) == STORAGE_OK
+[PASS] 2 == loaded.count
+[PASS] "Иванов" == "Иванов"
+[PASS] "Петров" == "Петров"
+[PASS] "Иванович" == "Иванович"
+[PASS] "Яндекс" == "Яндекс"
+[PASS] "Курьер" == "Курьер"
+[PASS] "+7-900-111-22-33" == "+7-900-111-22-33"
+[PASS] "ivan@example.com" == "ivan@example.com"
+[PASS] "vk.com/ivan" == "vk.com/ivan"
+[PASS] "t.me/ivan" == "t.me/ivan"
+[PASS] links_are_consistent(&loaded)
+[PASS] list_is_sorted(&loaded)
+[PASS] storage_load(&book, TEST_STORAGE_FILE) == STORAGE_ERROR_NOT_FOUND
+[PASS] 1 == book.count
+[PASS] "Сохранов" == "Сохранов"
+[PASS] links_are_consistent(&book)
+[PASS] file != NULL
+[PASS] storage_load(&book, TEST_INVALID_FILE) == STORAGE_ERROR_FORMAT
+[PASS] 1 == book.count
+[PASS] "Старов" == "Старов"
+[PASS] links_are_consistent(&book)
+
+Результат: 100 из 100 проверок пройдено.
+Все автотесты пройдены.
