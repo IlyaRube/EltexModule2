@@ -1,0 +1,45 @@
+./tests
+[PASS] menu.commands == NULL
+[PASS] menu.count == 0U
+[PASS] menu.capacity == 0U
+[PASS] status == CALCULATOR_OK
+[PASS] status == CALCULATOR_OK
+[PASS] command != NULL
+[PASS] command != NULL && command->operation == dummy_multiply
+[PASS] status == CALCULATOR_OK
+[PASS] 42.0 ~= result
+[PASS] calculator_menu_add(&menu, 1, "another", dummy_add) == CALCULATOR_DUPLICATE_COMMAND
+[PASS] calculator_menu_add(&menu, 3, "dummy_add", dummy_add) == CALCULATOR_DUPLICATE_COMMAND
+[PASS] calculator_menu_find(&menu, 99) == NULL
+[PASS] calculator_menu_find_by_name(&menu, "missing") == NULL
+[PASS] calculator_menu_get(&menu, 99U) == NULL
+[PASS] menu.commands == NULL
+[PASS] menu.count == 0U
+[PASS] menu.capacity == 0U
+[PASS] status == PLUGIN_LOADER_OK
+[PASS] registry.count == 4U
+[PASS] registry.menu.count == 4U
+[PASS] registry.skipped_count == 0U
+[PASS] command != NULL
+[PASS] status == expected_status
+[PASS] expected_result ~= result
+[PASS] command != NULL
+[PASS] status == expected_status
+[PASS] expected_result ~= result
+[PASS] command != NULL
+[PASS] status == expected_status
+[PASS] expected_result ~= result
+[PASS] command != NULL
+[PASS] status == expected_status
+[PASS] expected_result ~= result
+[PASS] command != NULL
+[PASS] status == expected_status
+[PASS] registry.plugins == NULL
+[PASS] registry.count == 0U
+[PASS] registry.menu.commands == NULL
+[PASS] status == PLUGIN_LOADER_DIRECTORY_ERROR
+[PASS] registry.count == 0U
+[PASS] registry.menu.count == 0U
+
+Tests passed: 41/41
+ALL TESTS PASSED
