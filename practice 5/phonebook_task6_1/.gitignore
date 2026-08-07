@@ -1,0 +1,5 @@
+*.exe
+*.o
+*.a
+tests_sanitize
+contacts.txt.tmp
