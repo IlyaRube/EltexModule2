@@ -322,6 +322,8 @@ static void test_storage_save_and_load(void)
     ContactBook loaded;
     Contact first = make_contact("Петров", "Пётр");
     Contact second = make_contact("Иванов", "Иван");
+    FILE *binary_file;
+    unsigned char binary_header[20];
 
     remove_storage_test_files();
     contact_book_init(&source);
@@ -346,6 +348,18 @@ static void test_storage_save_and_load(void)
     contact_book_add(&source, &second);
 
     EXPECT_TRUE(storage_save(&source, TEST_STORAGE_FILE) == STORAGE_OK);
+
+    binary_file = fopen(TEST_STORAGE_FILE, "rb");
+    EXPECT_TRUE(binary_file != NULL);
+    if (binary_file != NULL) {
+        EXPECT_TRUE(fread(binary_header, 1, sizeof(binary_header), binary_file) ==
+                    sizeof(binary_header));
+        EXPECT_TRUE(memcmp(binary_header, "PHONEBOOK_BIN_V1", 16) == 0);
+        EXPECT_TRUE(binary_header[16] == 2 && binary_header[17] == 0 &&
+                    binary_header[18] == 0 && binary_header[19] == 0);
+        fclose(binary_file);
+    }
+
     EXPECT_TRUE(storage_load(&loaded, TEST_STORAGE_FILE) == STORAGE_OK);
     EXPECT_SIZE_EQ(2, loaded.count);
     EXPECT_STRING_EQ("Иванов", get_contact(&loaded, 0)->last_name);

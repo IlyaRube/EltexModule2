@@ -1,3 +1,5 @@
+gcc -std=c11 -Wall -Wextra -Wpedantic -O2 -finput-charset=UTF-8 -fexec-charset=UTF-8 tests.c contact_book.c storage.c -o tests
+./tests
 Запуск автотестов телефонной книги на бинарном дереве...
 
 [PASS] book.root == NULL
@@ -77,6 +79,10 @@
 [PASS] contact_matches_query(&contact, "") == 0
 [PASS] contact_is_valid(&contact) == 0
 [PASS] storage_save(&source, TEST_STORAGE_FILE) == STORAGE_OK
+[PASS] binary_file != NULL
+[PASS] fread(binary_header, 1, sizeof(binary_header), binary_file) == sizeof(binary_header)
+[PASS] memcmp(binary_header, "PHONEBOOK_BIN_V1", 16) == 0
+[PASS] binary_header[16] == 2 && binary_header[17] == 0 && binary_header[18] == 0 && binary_header[19] == 0
 [PASS] storage_load(&loaded, TEST_STORAGE_FILE) == STORAGE_OK
 [PASS] 2 == loaded.count == 2
 [PASS] "Иванов" == "Иванов"
@@ -100,5 +106,5 @@
 [PASS] 0 == book.changes_since_balance == 0
 [PASS] 0 == book.balance_count == 0
 
-Результат: 99 из 99 проверок пройдено.
+Результат: 103 из 103 проверок пройдено.
 Все автотесты пройдены.

@@ -1,6 +1,7 @@
 #include "storage.h"
 
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,93 +10,155 @@
 #include <windows.h>
 #endif
 
-#define STORAGE_HEADER "PHONEBOOK_TEXT_V1"
+/*
+ * Бинарный формат файла contacts.txt, версия 1.
+ *
+ * Структура файла:
+ *   16 байт  - сигнатура "PHONEBOOK_BIN_V1"
+ *   4 байта  - количество контактов (uint32_t, little-endian)
+ *   далее    - контакты по порядку симметричного обхода BST
+ *
+ * Каждая строка хранится как:
+ *   4 байта  - длина строки без '\0'
+ *   N байт   - содержимое строки
+ *
+ * Каждый список (телефоны, email и т. п.) хранится как:
+ *   4 байта  - количество элементов
+ *   далее    - строки в описанном выше формате
+ *
+ * Мы намеренно не пишем структуру Contact через fwrite целиком:
+ * в ней есть size_t и возможные байты выравнивания, поэтому такой файл
+ * зависел бы от архитектуры и компилятора.
+ */
+#define STORAGE_MAGIC "PHONEBOOK_BIN_V1"
+#define STORAGE_MAGIC_SIZE 16u
 #define TEMP_PATH_SIZE 1024
-#define NUMBER_BUFFER_SIZE 64
-#define MAX_STORED_CONTACTS 100000
+#define MAX_STORED_CONTACTS 100000u
 
-typedef enum LineReadResult {
-    LINE_READ_OK = 0,
-    LINE_READ_END,
-    LINE_READ_ERROR,
-    LINE_READ_TOO_LONG
-} LineReadResult;
-
-static LineReadResult read_line(FILE *file, char *buffer, size_t buffer_size)
+static int write_bytes(FILE *file, const void *data, size_t size)
 {
-    size_t length;
-    int ch;
-
-    if (fgets(buffer, (int)buffer_size, file) == NULL) {
-        return ferror(file) ? LINE_READ_ERROR : LINE_READ_END;
-    }
-
-    length = strlen(buffer);
-    if (length > 0 && buffer[length - 1] == '\n') {
-        buffer[--length] = '\0';
-        if (length > 0 && buffer[length - 1] == '\r') {
-            buffer[length - 1] = '\0';
-        }
-        return LINE_READ_OK;
-    }
-
-    ch = fgetc(file);
-    if (ch == '\n' || ch == EOF) {
-        return LINE_READ_OK;
-    }
-
-    while (ch != '\n' && ch != EOF) {
-        ch = fgetc(file);
-    }
-
-    return LINE_READ_TOO_LONG;
+    return size == 0 || fwrite(data, 1, size, file) == size;
 }
 
-static StorageResult line_result_to_storage(LineReadResult result)
+static StorageResult read_bytes(FILE *file, void *data, size_t size)
 {
-    switch (result) {
-        case LINE_READ_OK:
-            return STORAGE_OK;
-        case LINE_READ_ERROR:
-            return STORAGE_ERROR_READ;
-        case LINE_READ_END:
-        case LINE_READ_TOO_LONG:
-        default:
-            return STORAGE_ERROR_FORMAT;
+    size_t read_count;
+
+    if (size == 0) {
+        return STORAGE_OK;
     }
+
+    read_count = fread(data, 1, size, file);
+    if (read_count == size) {
+        return STORAGE_OK;
+    }
+
+    return ferror(file) ? STORAGE_ERROR_READ : STORAGE_ERROR_FORMAT;
 }
 
-static StorageResult read_required_line(FILE *file,
-                                        char *buffer,
-                                        size_t buffer_size)
+static int write_u32_le(FILE *file, uint32_t value)
 {
-    return line_result_to_storage(read_line(file, buffer, buffer_size));
+    unsigned char bytes[4];
+
+    bytes[0] = (unsigned char)(value & 0xFFu);
+    bytes[1] = (unsigned char)((value >> 8) & 0xFFu);
+    bytes[2] = (unsigned char)((value >> 16) & 0xFFu);
+    bytes[3] = (unsigned char)((value >> 24) & 0xFFu);
+
+    return write_bytes(file, bytes, sizeof(bytes));
 }
 
-static StorageResult read_size_value(FILE *file,
-                                     size_t max_value,
-                                     size_t *value)
+static StorageResult read_u32_le(FILE *file, uint32_t *value)
 {
-    char buffer[NUMBER_BUFFER_SIZE];
-    char *end;
-    unsigned long long parsed;
+    unsigned char bytes[4];
     StorageResult result;
 
-    result = read_required_line(file, buffer, sizeof(buffer));
+    if (value == NULL) {
+        return STORAGE_ERROR_INVALID_ARGUMENT;
+    }
+
+    result = read_bytes(file, bytes, sizeof(bytes));
     if (result != STORAGE_OK) {
         return result;
     }
 
-    errno = 0;
-    end = NULL;
-    parsed = strtoull(buffer, &end, 10);
+    *value = (uint32_t)bytes[0] |
+             ((uint32_t)bytes[1] << 8) |
+             ((uint32_t)bytes[2] << 16) |
+             ((uint32_t)bytes[3] << 24);
 
-    if (errno != 0 || end == buffer || *end != '\0' || parsed > max_value) {
+    return STORAGE_OK;
+}
+
+static int write_binary_string(FILE *file, const char *text)
+{
+    size_t length;
+
+    if (text == NULL) {
+        return 0;
+    }
+
+    length = strlen(text);
+    if (length > UINT32_MAX) {
+        return 0;
+    }
+
+    return write_u32_le(file, (uint32_t)length) &&
+           write_bytes(file, text, length);
+}
+
+static StorageResult read_binary_string(FILE *file,
+                                        char *buffer,
+                                        size_t buffer_size)
+{
+    uint32_t stored_length;
+    StorageResult result;
+
+    if (buffer == NULL || buffer_size == 0) {
+        return STORAGE_ERROR_INVALID_ARGUMENT;
+    }
+
+    result = read_u32_le(file, &stored_length);
+    if (result != STORAGE_OK) {
+        return result;
+    }
+
+    if ((size_t)stored_length >= buffer_size) {
         return STORAGE_ERROR_FORMAT;
     }
 
-    *value = (size_t)parsed;
+    result = read_bytes(file, buffer, (size_t)stored_length);
+    if (result != STORAGE_OK) {
+        return result;
+    }
+
+    /* В корректном файле внутри строки не должно быть встроенного '\0'. */
+    if (stored_length > 0 &&
+        memchr(buffer, '\0', (size_t)stored_length) != NULL) {
+        return STORAGE_ERROR_FORMAT;
+    }
+
+    buffer[stored_length] = '\0';
     return STORAGE_OK;
+}
+
+static int write_string_list(FILE *file,
+                             const char items[][MAX_ITEM_LENGTH],
+                             size_t count)
+{
+    size_t i;
+
+    if (count > UINT32_MAX || !write_u32_le(file, (uint32_t)count)) {
+        return 0;
+    }
+
+    for (i = 0; i < count; i++) {
+        if (!write_binary_string(file, items[i])) {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 static StorageResult read_string_list(FILE *file,
@@ -103,16 +166,27 @@ static StorageResult read_string_list(FILE *file,
                                       size_t max_count,
                                       size_t *count)
 {
+    uint32_t stored_count;
     size_t i;
     StorageResult result;
 
-    result = read_size_value(file, max_count, count);
+    if (count == NULL) {
+        return STORAGE_ERROR_INVALID_ARGUMENT;
+    }
+
+    result = read_u32_le(file, &stored_count);
     if (result != STORAGE_OK) {
         return result;
     }
 
+    if ((size_t)stored_count > max_count) {
+        return STORAGE_ERROR_FORMAT;
+    }
+
+    *count = (size_t)stored_count;
+
     for (i = 0; i < *count; i++) {
-        result = read_required_line(file, items[i], MAX_ITEM_LENGTH);
+        result = read_binary_string(file, items[i], MAX_ITEM_LENGTH);
         if (result != STORAGE_OK) {
             return result;
         }
@@ -125,37 +199,56 @@ static StorageResult read_string_list(FILE *file,
     return STORAGE_OK;
 }
 
+static int write_contact(FILE *file, const Contact *contact)
+{
+    return write_binary_string(file, contact->last_name) &&
+           write_binary_string(file, contact->first_name) &&
+           write_binary_string(file, contact->middle_name) &&
+           write_binary_string(file, contact->workplace) &&
+           write_binary_string(file, contact->position) &&
+           write_string_list(file, contact->phones, contact->phone_count) &&
+           write_string_list(file, contact->emails, contact->email_count) &&
+           write_string_list(file, contact->social_links,
+                             contact->social_link_count) &&
+           write_string_list(file, contact->messengers,
+                             contact->messenger_count);
+}
+
 static StorageResult read_contact(FILE *file, Contact *contact)
 {
     StorageResult result;
 
+    if (contact == NULL) {
+        return STORAGE_ERROR_INVALID_ARGUMENT;
+    }
+
     contact_init(contact);
 
-    result = read_required_line(file, contact->last_name,
+    result = read_binary_string(file, contact->last_name,
                                 sizeof(contact->last_name));
     if (result != STORAGE_OK) {
         return result;
     }
 
-    result = read_required_line(file, contact->first_name,
+    result = read_binary_string(file, contact->first_name,
                                 sizeof(contact->first_name));
     if (result != STORAGE_OK) {
         return result;
     }
 
-    result = read_required_line(file, contact->middle_name,
+    result = read_binary_string(file, contact->middle_name,
                                 sizeof(contact->middle_name));
     if (result != STORAGE_OK) {
         return result;
     }
 
-    result = read_required_line(file, contact->workplace,
+    result = read_binary_string(file, contact->workplace,
                                 sizeof(contact->workplace));
     if (result != STORAGE_OK) {
         return result;
     }
 
-    result = read_required_line(file, contact->position,
+    result = read_binary_string(file, contact->position,
                                 sizeof(contact->position));
     if (result != STORAGE_OK) {
         return result;
@@ -188,50 +281,6 @@ static StorageResult read_contact(FILE *file, Contact *contact)
     return contact_is_valid(contact) ? STORAGE_OK : STORAGE_ERROR_FORMAT;
 }
 
-static int write_line(FILE *file, const char *text)
-{
-    return fputs(text, file) != EOF && fputc('\n', file) != EOF;
-}
-
-static int write_size_value(FILE *file, size_t value)
-{
-    return fprintf(file, "%zu\n", value) >= 0;
-}
-
-static int write_string_list(FILE *file,
-                             const char items[][MAX_ITEM_LENGTH],
-                             size_t count)
-{
-    size_t i;
-
-    if (!write_size_value(file, count)) {
-        return 0;
-    }
-
-    for (i = 0; i < count; i++) {
-        if (!write_line(file, items[i])) {
-            return 0;
-        }
-    }
-
-    return 1;
-}
-
-static int write_contact(FILE *file, const Contact *contact)
-{
-    return write_line(file, contact->last_name) &&
-           write_line(file, contact->first_name) &&
-           write_line(file, contact->middle_name) &&
-           write_line(file, contact->workplace) &&
-           write_line(file, contact->position) &&
-           write_string_list(file, contact->phones, contact->phone_count) &&
-           write_string_list(file, contact->emails, contact->email_count) &&
-           write_string_list(file, contact->social_links,
-                             contact->social_link_count) &&
-           write_string_list(file, contact->messengers,
-                             contact->messenger_count);
-}
-
 static int replace_file(const char *temporary_path, const char *file_path)
 {
 #ifdef _WIN32
@@ -253,6 +302,10 @@ StorageResult storage_save(const ContactBook *book, const char *file_path)
         return STORAGE_ERROR_INVALID_ARGUMENT;
     }
 
+    if (book->count > MAX_STORED_CONTACTS || book->count > UINT32_MAX) {
+        return STORAGE_ERROR_FORMAT;
+    }
+
     for (i = 0; i < book->count; i++) {
         const Contact *contact = contact_book_get(book, i);
         if (contact == NULL || !contact_is_valid(contact)) {
@@ -271,14 +324,14 @@ StorageResult storage_save(const ContactBook *book, const char *file_path)
         return STORAGE_ERROR_OPEN;
     }
 
-    if (!write_line(file, STORAGE_HEADER) ||
-        !write_size_value(file, book->count)) {
+    if (!write_bytes(file, STORAGE_MAGIC, STORAGE_MAGIC_SIZE) ||
+        !write_u32_le(file, (uint32_t)book->count)) {
         fclose(file);
         remove(temporary_path);
         return STORAGE_ERROR_WRITE;
     }
 
-    /* Симметричный обход дерева через contact_book_get сохраняет Ф.И.О. по порядку. */
+    /* Симметричный обход через contact_book_get сохраняет контакты по Ф.И.О. */
     for (i = 0; i < book->count; i++) {
         const Contact *contact = contact_book_get(book, i);
         if (contact == NULL || !write_contact(file, contact)) {
@@ -305,10 +358,11 @@ StorageResult storage_load(ContactBook *book, const char *file_path)
 {
     FILE *file;
     ContactBook loaded_book;
-    char header[64];
-    size_t stored_count;
+    unsigned char magic[STORAGE_MAGIC_SIZE];
+    uint32_t stored_count;
     size_t i;
     StorageResult result;
+    int trailing_byte;
 
     if (book == NULL || file_path == NULL || file_path[0] == '\0') {
         return STORAGE_ERROR_INVALID_ARGUMENT;
@@ -319,26 +373,31 @@ StorageResult storage_load(ContactBook *book, const char *file_path)
         return errno == ENOENT ? STORAGE_ERROR_NOT_FOUND : STORAGE_ERROR_OPEN;
     }
 
-    result = read_required_line(file, header, sizeof(header));
+    result = read_bytes(file, magic, sizeof(magic));
     if (result != STORAGE_OK) {
         fclose(file);
         return result;
     }
 
-    if (strcmp(header, STORAGE_HEADER) != 0) {
+    if (memcmp(magic, STORAGE_MAGIC, STORAGE_MAGIC_SIZE) != 0) {
         fclose(file);
         return STORAGE_ERROR_FORMAT;
     }
 
-    result = read_size_value(file, MAX_STORED_CONTACTS, &stored_count);
+    result = read_u32_le(file, &stored_count);
     if (result != STORAGE_OK) {
         fclose(file);
         return result;
     }
 
+    if (stored_count > MAX_STORED_CONTACTS) {
+        fclose(file);
+        return STORAGE_ERROR_FORMAT;
+    }
+
     contact_book_init(&loaded_book);
 
-    for (i = 0; i < stored_count; i++) {
+    for (i = 0; i < (size_t)stored_count; i++) {
         Contact contact;
         ContactBookResult add_result;
 
@@ -357,6 +416,19 @@ StorageResult storage_load(ContactBook *book, const char *file_path)
                        ? STORAGE_ERROR_READ
                        : STORAGE_ERROR_FORMAT;
         }
+    }
+
+    /* После последней записи в корректном бинарном файле больше ничего нет. */
+    trailing_byte = fgetc(file);
+    if (trailing_byte != EOF) {
+        fclose(file);
+        contact_book_clear(&loaded_book);
+        return STORAGE_ERROR_FORMAT;
+    }
+    if (ferror(file)) {
+        fclose(file);
+        contact_book_clear(&loaded_book);
+        return STORAGE_ERROR_READ;
     }
 
     if (fclose(file) != 0) {
@@ -382,11 +454,11 @@ const char *storage_result_message(StorageResult result)
         case STORAGE_ERROR_OPEN:
             return "Не удалось открыть файл с контактами.";
         case STORAGE_ERROR_READ:
-            return "Ошибка чтения файла с контактами.";
+            return "Ошибка чтения бинарного файла с контактами.";
         case STORAGE_ERROR_WRITE:
-            return "Ошибка записи файла с контактами.";
+            return "Ошибка записи бинарного файла с контактами.";
         case STORAGE_ERROR_FORMAT:
-            return "Файл с контактами повреждён или имеет неверный формат.";
+            return "Бинарный файл с контактами повреждён или имеет неверный формат.";
         case STORAGE_ERROR_REPLACE:
             return "Не удалось заменить старый файл новым.";
         default:
