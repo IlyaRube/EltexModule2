@@ -1,0 +1,104 @@
+Запуск автотестов телефонной книги на бинарном дереве...
+
+[PASS] book.root == NULL
+[PASS] 0 == book.count == 0
+[PASS] 0 == contact_book_height(&book) == 0
+[PASS] contact_book_is_bst(&book) == 1
+[PASS] contact_book_add(&book, &third) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &first) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &second) == CONTACT_BOOK_OK
+[PASS] 3 == book.count == 3
+[PASS] "Андреев" == "Андреев"
+[PASS] "Борисов" == "Борисов"
+[PASS] "Васильев" == "Васильев"
+[PASS] contact_book_is_bst(&book) == 1
+[PASS] contact_book_add(&book, &no_last_name) == CONTACT_BOOK_ERROR_REQUIRED_FIELD
+[PASS] contact_book_add(&book, &no_first_name) == CONTACT_BOOK_ERROR_REQUIRED_FIELD
+[PASS] 0 == book.count == 0
+[PASS] contact_book_add(&book, &original) == CONTACT_BOOK_OK
+[PASS] contact_book_update(&book, 0, &edited) == CONTACT_BOOK_OK
+[PASS] 1 == book.changes_since_balance == 1
+[PASS] "Инженер" == "Инженер"
+[PASS] "petr@example.com" == "petr@example.com"
+[PASS] contact_book_is_bst(&book) == 1
+[PASS] contact_book_update(&book, 1, &edited) == CONTACT_BOOK_OK
+[PASS] "Андреев" == "Андреев"
+[PASS] "Васильев" == "Васильев"
+[PASS] "Яковлев" == "Яковлев"
+[PASS] contact_book_is_bst(&book) == 1
+[PASS] contact_book_add(&book, &first) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &second) == CONTACT_BOOK_OK
+[PASS] 2 == book.count == 2
+[PASS] "Инженер" == "Инженер"
+[PASS] "Тестировщик" == "Тестировщик"
+[PASS] contact_book_delete(&book, 0) == CONTACT_BOOK_OK
+[PASS] 1 == book.count == 1
+[PASS] "Тестировщик" == "Тестировщик"
+[PASS] contact_book_is_bst(&book) == 1
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] book.root != NULL
+[PASS] "D" == "D"
+[PASS] book.root->left != NULL && book.root->right != NULL
+[PASS] contact_book_delete(&book, 3) == CONTACT_BOOK_OK
+[PASS] 6 == book.count == 6
+[PASS] "A" == "A"
+[PASS] "B" == "B"
+[PASS] "C" == "C"
+[PASS] "E" == "E"
+[PASS] "F" == "F"
+[PASS] "G" == "G"
+[PASS] contact_book_is_bst(&book) == 1
+[PASS] contact_book_update(&book, 0, &contact) == CONTACT_BOOK_ERROR_NOT_FOUND
+[PASS] contact_book_delete(&book, 0) == CONTACT_BOOK_ERROR_NOT_FOUND
+[PASS] contact_book_get(&book, 0) == NULL
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] contact_book_add(&book, &contact) == CONTACT_BOOK_OK
+[PASS] CONTACT_BOOK_BALANCE_INTERVAL == book.count == 5
+[PASS] 1 == book.balance_count == 1
+[PASS] 0 == book.changes_since_balance == 0
+[PASS] 3 == contact_book_height(&book) == 3
+[PASS] contact_book_is_bst(&book) == 1
+[PASS] height_after <= height_before
+[PASS] 4 == height_after == 4
+[PASS] contact_book_is_bst(&book) == 1
+[PASS] contact_matches_query(&contact, "Смир") == 1
+[PASS] contact_matches_query(&contact, "Алекс") == 1
+[PASS] contact_matches_query(&contact, "Олег") == 1
+[PASS] contact_matches_query(&contact, "Петров") == 0
+[PASS] contact_matches_query(&contact, "") == 0
+[PASS] contact_is_valid(&contact) == 0
+[PASS] storage_save(&source, TEST_STORAGE_FILE) == STORAGE_OK
+[PASS] storage_load(&loaded, TEST_STORAGE_FILE) == STORAGE_OK
+[PASS] 2 == loaded.count == 2
+[PASS] "Иванов" == "Иванов"
+[PASS] "Иванович" == "Иванович"
+[PASS] "Яндекс" == "Яндекс"
+[PASS] "+7-900-111-22-33" == "+7-900-111-22-33"
+[PASS] "ivan@example.com" == "ivan@example.com"
+[PASS] "vk.com/ivan" == "vk.com/ivan"
+[PASS] "t.me/ivan" == "t.me/ivan"
+[PASS] "Петров" == "Петров"
+[PASS] contact_book_is_bst(&loaded) == 1
+[PASS] storage_load(&book, TEST_STORAGE_FILE) == STORAGE_ERROR_NOT_FOUND
+[PASS] 1 == book.count == 1
+[PASS] "Сохранов" == "Сохранов"
+[PASS] file != NULL
+[PASS] storage_load(&book, TEST_INVALID_FILE) == STORAGE_ERROR_FORMAT
+[PASS] 1 == book.count == 1
+[PASS] "Старов" == "Старов"
+[PASS] book.root == NULL
+[PASS] 0 == book.count == 0
+[PASS] 0 == book.changes_since_balance == 0
+[PASS] 0 == book.balance_count == 0
+
+Результат: 99 из 99 проверок пройдено.
+Все автотесты пройдены.
